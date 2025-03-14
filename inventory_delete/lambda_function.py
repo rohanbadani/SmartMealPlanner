@@ -33,34 +33,69 @@ def lambda_handler(event, context):
             
         body = json.loads(event['body'])  
         item_name = body.get('name')  
-        item_quantity = body.get('quantity')
-        if not item_name or not item_quantity:
+        remove_quantity = body.get('quantity')
+        if not item_name or not remove_quantity:
             return {
                 'statusCode': 400,
                 'body': json.dumps({'error': 'Missing required parameter'})
             }
 
-        print(f"**Deleting items: {item_name}**")
+        select_sql = "SELECT quantity FROM inventory WHERE type = %s"
+        select_params = (item_name,)
 
-        sql = "UPDATE inventory SET quantity = quantity - %s WHERE type = %s"
-        params = (item_quantity, item_name)
+        result = datatier.perform_query(dbConn, select_sql, select_params)
 
-        rows_affected = datatier.perform_action(dbConn, sql, params)  
-
-        print(f"**Rows affected: {rows_affected}**")
-
-        if rows_affected == 0:
+        if not result:
             return {
                 'statusCode': 404,
-                'body': json.dumps({'error': 'Item not found'})
+                'body': json.dumps({'error': f'Item "{item_name}" not found'})
+            }
+        
+        current_quantity = result[0]['quantity']
+        print(f"**Current quantity of {item_name}: {current_quantity}**")
+
+        new_quantity = current_quantity - remove_quantity
+    
+        if new_quantity <= 0:
+            delete_sql = "DELETE FROM inventory WHERE type = %s"
+            delete_params = (item_name,)
+
+            rows_affected = datatier.perform_action(dbConn, delete_sql, delete_params)
+            if rows_affected == 0:
+                return {
+                    'statusCode': 404,
+                    'body': json.dumps({'error': f'Could not delete "{item_name}". Item not found.'})
+                }
+            
+            return {
+                'statusCode': 200,
+                'body': json.dumps({
+                    'message': f'Delete type.'
+                })
             }
 
-        print(f"**Successfully deleted {item_name}**")
+        else:
+            update_sql = "UPDATE inventory SET quantity = %s WHERE type = %s"
+            update_params = (new_quantity, item_name)
 
-        return {
-            'statusCode': 200,
-            'body': json.dumps({'message': f'Successfully deleted {item_name}'})
-        }
+            rows_affected = datatier.perform_action(dbConn, update_sql, update_params)
+            print(f"**Rows affected by update: {rows_affected}**")
+
+            if rows_affected == 0:
+                return {
+                    'statusCode': 404,
+                    'body': json.dumps({
+                        'error': f'Unable to update. "{item_name}" was not found.'
+                    })
+                }
+
+            return {
+                'statusCode': 200,
+                'body': json.dumps({
+                    'message': f'Successfully removed {remove_quantity} from "{item_name}".',
+                    'new_quantity': new_quantity
+                })
+            }
 
     except FileNotFoundError as e:
         print(f"**ERROR: {e}**")
