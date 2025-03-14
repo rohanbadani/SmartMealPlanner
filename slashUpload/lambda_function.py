@@ -6,11 +6,8 @@
 
 
 import json
-import os
 import requests
 import base64
-import logging
-import boto3
 import pymysql
 import configparser
 
@@ -52,9 +49,7 @@ def parse_qr_text(text):
 
 
 def lambda_handler(event, context):
-    # Set up logging
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    
 
     # Load config from mealappconfig.ini
     config = configparser.ConfigParser()
