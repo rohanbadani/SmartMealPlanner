@@ -40,7 +40,7 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'Missing required parameter'})
             }
 
-        select_sql = "SELECT quantity FROM inventory WHERE type = %s"
+        select_sql = "SELECT quantity FROM inventory WHERE name = %s"
         select_params = (item_name,)
 
         result = datatier.perform_query(dbConn, select_sql, select_params)
@@ -57,7 +57,7 @@ def lambda_handler(event, context):
         new_quantity = current_quantity - remove_quantity
     
         if new_quantity <= 0:
-            delete_sql = "DELETE FROM inventory WHERE type = %s"
+            delete_sql = "DELETE FROM inventory WHERE name = %s"
             delete_params = (item_name,)
 
             rows_affected = datatier.perform_action(dbConn, delete_sql, delete_params)
@@ -70,12 +70,12 @@ def lambda_handler(event, context):
             return {
                 'statusCode': 200,
                 'body': json.dumps({
-                    'message': f'Delete type.'
+                    'message': f'Delete.'
                 })
             }
 
         else:
-            update_sql = "UPDATE inventory SET quantity = %s WHERE type = %s"
+            update_sql = "UPDATE inventory SET quantity = %s WHERE name = %s"
             update_params = (new_quantity, item_name)
 
             rows_affected = datatier.perform_action(dbConn, update_sql, update_params)
