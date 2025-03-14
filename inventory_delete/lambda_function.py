@@ -32,17 +32,18 @@ def lambda_handler(event, context):
             }
             
         body = json.loads(event['body'])  
-        item_id = body.get('itemid')  
-        if not item_id:
+        item_name = body.get('name')  
+        item_quantity = body.get('quantity')
+        if not item_name or not item_quantity:
             return {
                 'statusCode': 400,
-                'body': json.dumps({'error': 'Missing required parameter: id'})
+                'body': json.dumps({'error': 'Missing required parameter'})
             }
 
-        print(f"**Deleting item: {item_id}**")
+        print(f"**Deleting items: {item_name}**")
 
-        sql = "DELETE FROM inventory WHERE type = %s"
-        params = (item_id,)
+        sql = "UPDATE inventory SET quantity = quantity - %s WHERE type = %s"
+        params = (item_quantity, item_name)
 
         rows_affected = datatier.perform_action(dbConn, sql, params)  
 
@@ -54,11 +55,11 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'Item not found'})
             }
 
-        print(f"**Successfully deleted {item_id}**")
+        print(f"**Successfully deleted {item_name}**")
 
         return {
             'statusCode': 200,
-            'body': json.dumps({'message': f'Successfully deleted {item_id}'})
+            'body': json.dumps({'message': f'Successfully deleted {item_name}'})
         }
 
     except FileNotFoundError as e:
