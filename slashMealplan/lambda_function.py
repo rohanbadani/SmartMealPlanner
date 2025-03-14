@@ -69,7 +69,7 @@ def lambda_handler(event, context):
             raise Exception(f"OpenAI API error: {response.status_code}, {response.text}")
         
         res = results.json()
-        meal_plan_text = result["choices"][0]["text"].strip() if "choices" in result and result["choices"] else "No meal plan generated"
+        meal_plan_text = res["choices"][0]["text"].strip() if "choices" in res and res["choices"] else "No meal plan generated"
 
         print(meal_plan_text)
 

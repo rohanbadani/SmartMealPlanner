@@ -149,6 +149,67 @@ def prompt():
       return -1
 
 
+############################################################
+#
+# mealplan
+#
+def mealplan(baseurl):
+    """
+    Generates a meal plan based on the user's inventory
+
+    Parameters
+    ----------
+    baseurl: baseurl for web service
+
+    Returns
+    -------
+    nothing
+    """
+
+    try:
+        #
+        # call the web service:
+        #
+        api = '/mealplan'
+        url = baseurl + api
+
+        # res = requests.get(url)
+        res = web_service_get(url)
+
+        #
+        # let's look at what we got back:
+        #
+        if res.status_code == 200: #success
+            pass
+        else:
+            # failed:
+            print("**ERROR: failed with status code:", res.status_code)
+            print("url: " + url)
+            if res.status_code == 500:
+                # we'll have an error message
+                body = res.json()
+                print("Error message:", body)
+            #
+            return
+
+        #
+        # deserialize and extract users:
+        #
+        body = res.json()
+        meal_plan_text = body.get("meal_plan", "No meal plan found.")
+        print(meal_plan_text)
+
+        #
+        return
+
+  except Exception as e:
+    logging.error("**ERROR: users() failed:")
+    logging.error("url: " + url)
+    logging.error(e)
+    return
+
+
+
 
 ############################################################
 #
