@@ -1,0 +1,2 @@
+[notifications]
+recipient_email = "verified-sender@domain.com"
