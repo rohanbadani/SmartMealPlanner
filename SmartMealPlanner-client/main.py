@@ -35,24 +35,12 @@ from getpass import getpass
 class Item:
 
   def __init__(self, row):
-    self.itemid = row[0]
-    self.name = row[1]
-    self.quantity = row[2]
-    self.day = row[3]
-    self.month = row[4]
-    self.year = row[5]
+    self.name = row[0]
+    self.quantity = row[1]
+    self.day = row[2]
+    self.month = row[3]
+    self.year = row[4]
     
-
-
-class Job:
-
-  def __init__(self, row):
-    self.jobid = row[0]
-    self.userid = row[1]
-    self.status = row[2]
-    self.originaldatafile = row[3]
-    self.datafilekey = row[4]
-    self.resultsfilekey = row[5]
 
 
 ###################################################################
@@ -161,13 +149,14 @@ def prompt():
       return -1
 
 
+
 ############################################################
 #
-# users
+# delete
 #
-def users(baseurl):
+def delete(baseurl):
   """
-  Prints out all the users in the database
+  User inputs an item name and an amount of that item they consumed. This will then be updated in the table.
 
   Parameters
   ----------
@@ -182,17 +171,26 @@ def users(baseurl):
     #
     # call the web service:
     #
-    api = '/users'
-    url = baseurl + api
+    print("Enter an item name>")
+    name = input()
+    print("Enter the quantity that you consumed>")
+    quantity = input()
 
-    # res = requests.get(url)
-    res = web_service_get(url)
+    data = {"name": name, "quantity": quantity}
+
+    api = "/inventory"
+    url = baseurl + api
+    res = requests.delete(url, json=data)
 
     #
     # let's look at what we got back:
     #
     if res.status_code == 200: #success
-      pass
+      print("Inventory updated successfully")
+    elif res.status_code == 400: # no such user
+      body = res.json()
+      print(body)
+      return
     else:
       # failed:
       print("**ERROR: failed with status code:", res.status_code)
@@ -204,189 +202,12 @@ def users(baseurl):
       #
       return
 
-    #
-    # deserialize and extract users:
-    #
-    body = res.json()
-
-    #
-    # let's map each row into a User object:
-    #
-    users = []
-    for row in body:
-      user = User(row)
-      users.append(user)
-    #
-    # Now we can think OOP:
-    #
-    if len(users) == 0:
-      print("no users...")
-      return
-
-    for user in users:
-      print(user.userid)
-      print(" ", user.username)
-      print(" ", user.pwdhash)
-    #
-    return
-
   except Exception as e:
-    logging.error("**ERROR: users() failed:")
+    logging.error("**ERROR: delete() failed:")
     logging.error("url: " + url)
     logging.error(e)
     return
 
-
-############################################################
-#
-# jobs
-#
-def jobs(baseurl, token):
-  """
-  Prints out all the jobs in the database
-
-  Parameters
-  ----------
-  baseurl: baseurl for web service
-
-  Returns
-  -------
-  nothing
-  """
-
-  try:
-    if token == None:
-      print("No current token, please login")
-      return
-    #
-    # call the web service:
-    #
-    api = '/jobs'
-    url = baseurl + api
-
-    #
-    # make request:
-    #
-    # res = requests.get(url)
-    req_header = {"Authentication": token}
-    res = requests.get(url, headers=req_header)
-
-    #
-    # let's look at what we got back:
-    #
-    if res.status_code == 200: #success
-      pass
-    else:
-      # failed:
-      print("**ERROR: failed with status code:", res.status_code)
-      print("url: " + url)
-      if res.status_code == 401:
-        # we'll have an error message
-        body = res.json()
-        print(body)
-      elif res.status_code == 400 or res.status_code == 500:
-        # we'll have an error message
-        print("**ERROR:")
-        body = res.json()
-        print(body)
-      else:
-        print(f"**ERROR: Status Code {res.status_code}")
-
-      #
-      return
-
-    #
-    # deserialize and extract jobs:
-    #
-    body = res.json()
-    #
-    # let's map each row into an Job object:
-    #
-    jobs = []
-    for row in body:
-      job = Job(row)
-      jobs.append(job)
-    #
-    # Now we can think OOP:
-    #
-    if len(jobs) == 0:
-      print("no jobs...")
-      return
-
-    for job in jobs:
-      print(job.jobid)
-      print(" ", job.userid)
-      print(" ", job.status)
-      print(" ", job.originaldatafile)
-      print(" ", job.datafilekey)
-      print(" ", job.resultsfilekey)
-    #
-    return
-
-  except Exception as e:
-    logging.error("**ERROR: jobs() failed:")
-    logging.error("url: " + url)
-    logging.error(e)
-    return
-
-
-############################################################
-#
-# reset
-#
-def reset(baseurl):
-  """
-  Resets the database back to initial state.
-
-  Parameters
-  ----------
-  baseurl: baseurl for web service
-
-  Returns
-  -------
-  nothing
-  """
-
-  try:
-    #
-    # call the web service:
-    #
-    api = '/reset'
-    url = baseurl + api
-
-    res = requests.delete(url)
-
-    #
-    # let's look at what we got back:
-    #
-    if res.status_code == 200: #success
-      pass
-    else:
-      # failed:
-      print("**ERROR: failed with status code:", res.status_code)
-      print("url: " + url)
-      if res.status_code == 500:
-        # we'll have an error message
-        body = res.json()
-        print("Error message:", body)
-      #
-      return
-
-    #
-    # deserialize and print message
-    #
-    body = res.json()
-
-    msg = body
-
-    print(msg)
-    return
-
-  except Exception as e:
-    logging.error("**ERROR: reset() failed:")
-    logging.error("url: " + url)
-    logging.error(e)
-    return
 
 
 ############################################################
@@ -536,9 +357,6 @@ def upload(baseurl):
       #
       return
 
-    #
-    # success, extract jobid:
-    #
     body = res.json()
 
     # need to get name, expiration date, quantity to print to user
