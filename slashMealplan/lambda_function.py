@@ -1,8 +1,8 @@
 import json
 import os
-import boto3
 import datatier
 from configparser import ConfigParser
+import requests
 
 def lambda_handler(event, context):
     try:
@@ -46,6 +46,45 @@ def lambda_handler(event, context):
         print(prompt)
 
 
+        # Retrieve the OpenAI API key from config file
+        openai_api_key = configur.get('openai', 'key')
+        
+        # Set up the request to the OpenAI API using the text-davinci-003 model.
+        openai_url = "https://api.openai.com/v1/completions"
 
-    except:
-        raise Exception()
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {openai_api_key}"
+        }
+        data = {
+            "model": "text-davinci-003",
+            "prompt": prompt,
+            "max_tokens": 300,
+            "temperature": 0.7,
+            "n": 1
+        }
+
+        response = requests.post(openai_url, headers=headers, json=data)
+        if response.status_code != 200:
+            raise Exception(f"OpenAI API error: {response.status_code}, {response.text}")
+        
+        res = results.json()
+        meal_plan_text = result["choices"][0]["text"].strip() if "choices" in result and result["choices"] else "No meal plan generated"
+
+        print(meal_plan_text)
+
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"meal_plan": meal_plan_text})
+        }
+
+
+
+    except Exception as err:
+        print("**ERROR**")
+        print(str(err))
+        
+        return {
+        'statusCode': 500,
+        'body': json.dumps(str(err))
+        }
