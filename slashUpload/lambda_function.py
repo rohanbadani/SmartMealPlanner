@@ -9,13 +9,13 @@ import json
 import requests
 import base64
 import pymysql
-import configparser
+from configparser import ConfigParser
 
 
 def scan_QR(image_path):
     url = "https://api.qrserver.com/v1/read-qr-code/"
     with open(image_path, "rb") as image_file:
-        files = {"files": image_file}
+        files = {"file": image_file}
         response = requests.post(url, files=files)
     
 
@@ -50,20 +50,20 @@ def parse_qr_text(text):
 
 def lambda_handler(event, context):
     
-
-    # Load config from mealappconfig.ini
-    config = configparser.ConfigParser()
-    config.read('mealappconfig.ini')
-
-    # S3 configuration from [s3] section
-    S3_BUCKET = config.get('s3', 'bucket_name')
     
+    config_file = 'mealapp-config.ini'
+    configur = ConfigParser()
+    configur.read(config_file)
+    
+    
+    # Load config from mealappconfig.ini
+
     # RDS configuration from [rds] section
-    DB_HOST = config.get('rds', 'endpoint')
-    DB_PORT = config.getint('rds', 'port_number')
-    DB_USER = config.get('rds', 'user_name')
-    DB_PASSWORD = config.get('rds', 'user_pwd')
-    DB_NAME = config.get('rds', 'db_name')
+    DB_HOST = configur.get('rds', 'endpoint')
+    DB_PORT = configur.getint('rds', 'port_number')
+    DB_USER = configur.get('rds', 'user_name')
+    DB_PASSWORD = configur.get('rds', 'user_pwd')
+    DB_NAME = configur.get('rds', 'db_name')
 
     try:
 
@@ -95,10 +95,31 @@ def lambda_handler(event, context):
             cursorclass=pymysql.cursors.DictCursor
         )
 
+        with connection.cursor() as cursor:
+            select_sql = "SELECT quantity FROM inventory WHERE name = %s"
+            cursor.execute(select_sql, (parsed_data["item_name"],))
+            result = cursor.fetchone()
+            if result:
+                update_sql = """
+                    UPDATE inventory
+                    SET quantity = quantity + %s
+                    WHERE name = %s
+                """
+                cursor.execute(update_sql, (parsed_data["quantity"], parsed_data["item_name"]))
+                connection.commit()
+                
+                return {
+                    "statusCode": 200,
+                    "body": json.dumps({
+                        "message": "Item quantity updated",
+                        "item": parsed_data
+                    })
+                }
+
         try:
             with connection.cursor() as cursor:
                     insert_sql = """
-                        INSERT INTO food_items (name, day, month, year, quanitity)
+                        INSERT INTO inventory (name, day, month, year, quantity)
                         VALUES (%s, %s, %s, %s, %s)
                     """
                     # Split the expiration_date (YYYY-MM-DD) into its components:
@@ -123,7 +144,7 @@ def lambda_handler(event, context):
 
 
     except Exception as e:
-        logger.exception("Error processing the upload")
+        
         return {
             "statusCode": 500,
             "body": json.dumps({"error": str(e)})
