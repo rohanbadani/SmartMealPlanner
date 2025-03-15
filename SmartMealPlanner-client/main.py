@@ -14,7 +14,7 @@
 #
 
 import requests
-import jsons
+import json
 
 import uuid
 import pathlib
@@ -26,7 +26,6 @@ import time
 
 from configparser import ConfigParser
 from getpass import getpass
-
 
 ############################################################
 #
@@ -129,6 +128,7 @@ def prompt():
       print("   2 => see inventory")
       print("   3 => delete from inventory")
       print("   4 => get a meal plan")
+      print("   5 => get an email notification about which items are expiring within 3 days")
 
       cmd = input()
 
@@ -146,6 +146,62 @@ def prompt():
       print("**ERROR: invalid input")
       print("**ERROR")
       return -1
+
+
+
+############################################################
+#
+# notify
+#
+def notify(baseurl):
+    """
+    Notifies the user which items are expiring within the next 3 days
+
+    Parameters
+    ----------
+    baseurl: baseurl for web service
+
+    Returns
+    -------
+    nothing
+    """
+
+    try:
+        #
+        # call the web service:
+        #
+        api = '/notify'
+        url = baseurl + api
+
+        # res = requests.get(url)
+        res = web_service_get(url)
+
+        #
+        # let's look at what we got back:
+        #
+        if res.status_code == 200: #success
+            pass
+        else:
+            # failed:
+            print("**ERROR: failed with status code:", res.status_code)
+            print("url: " + url)
+            if res.status_code == 500:
+                # we'll have an error message
+                body = res.json()
+                print("Error message:", body)
+            #
+            return
+        body = res.json()
+        print(body)
+        #
+        return
+
+    except Exception as e:
+        logging.error("**ERROR: notify() failed:")
+        logging.error("url: " + url)
+        logging.error(e)
+        return
+
 
 
 ############################################################
@@ -201,11 +257,11 @@ def mealplan(baseurl):
         #
         return
 
-  except Exception as e:
-    logging.error("**ERROR: users() failed:")
-    logging.error("url: " + url)
-    logging.error(e)
-    return
+    except Exception as e:
+        logging.error("**ERROR: mealplan() failed:")
+        logging.error("url: " + url)
+        logging.error(e)
+        return
 
 
 
@@ -231,16 +287,20 @@ def delete(baseurl):
     #
     # call the web service:
     #
+    api = "/inventory"
+    url = baseurl + api
+
     print("Enter an item name>")
     name = input()
     print("Enter the quantity that you consumed>")
     quantity = input()
 
-    data = {"name": name, "quantity": quantity}
+    quantity = int(quantity)
+    payload = {"name": name, "quantity": quantity}
+    headers = {"Content-Type": "application/json"}
 
-    api = "/inventory"
-    url = baseurl + api
-    res = requests.delete(url, json=data)
+    res = requests.post(url, json=payload, headers=headers)
+
 
     #
     # let's look at what we got back:
@@ -324,11 +384,11 @@ def inventory(baseurl):
         items = []
         for row in body:
             item = Item(row)
-            items.append(user)
+            items.append(item)
         #
         # Now we can think OOP:
         #
-        if len(users) == 0:
+        if len(items) == 0:
             print("no items...")
             return
 
@@ -339,11 +399,11 @@ def inventory(baseurl):
         #
         return
 
-  except Exception as e:
-    logging.error("**ERROR: users() failed:")
-    logging.error("url: " + url)
-    logging.error(e)
-    return
+    except Exception as e:
+        logging.error("**ERROR: inventory() failed:")
+        logging.error("url: " + url)
+        logging.error(e)
+        return
 
 
 ############################################################
@@ -364,6 +424,8 @@ def upload(baseurl):
   nothing
   """
   try:
+    api = '/upload'
+    url = baseurl + api
     print("Enter Image filename>")
     local_filename = input()
 
@@ -385,17 +447,12 @@ def upload(baseurl):
     # the string as JSON for upload to server:
     #
     data = base64.b64encode(bytes)
-    datastr = data.decode()
+    datastr = data.decode("utf-8")
+    
+    payload = {"image": datastr}
+    headers = {"Content-Type": "application/json"}
+    res = requests.post(url, json=payload, headers=headers)
 
-    data = {"data": datastr}
-
-    #
-    # call the web service:
-    #
-    api = '/upload'
-    url = baseurl + api
-
-    res = requests.post(url, json=data)
 
     #
     # let's look at what we got back:
@@ -418,11 +475,12 @@ def upload(baseurl):
       return
 
     body = res.json()
+    item_data = body.get('item', {})
 
     # need to get name, expiration date, quantity to print to user
-    item_name = body.item['item_name']
-    date = body.item['expiration_date']
-    quantity = body.item['quantity']
+    item_name = item_data.get('item_name', 'Unknown')
+    date = item_data.get('expiration_date', 'Unknown')
+    quantity = item_data.get('quantity', 'Unknown')
 
     print(f"Added {item_name} to inventory with quantity: {quantity} and expiration date: {date}")
     return
@@ -535,6 +593,8 @@ try:
       delete(baseurl)
     elif cmd == 4:
       mealplan(baseurl)
+    elif cmd == 5:
+      notify(baseurl)
     else:
       print("** Unknown command, try again...")
     #
