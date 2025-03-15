@@ -35,8 +35,8 @@ def lambda_handler(event, context):
         today = datetime.date.today()
         three_days = today + datetime.timedelta(days=3)
 
-        sql = "SELECT type, quantity, day, month, year FROM inventory;"
-        items = datatier.perform_query(dbConn, sql)
+        sql = "SELECT name, quantity, day, month, year FROM inventory;"
+        items = datatier.retrieve_all_rows(dbConn, sql)
 
         if not items:
             print("**No items found in inventory**")
@@ -47,11 +47,11 @@ def lambda_handler(event, context):
 
         expiring_items = []
         for row in items:
-            item_type = row['type']
-            item_qty  = row['quantity']
-            item_day  = row['day']
-            item_mon  = row['month']
-            item_yr   = row['year']
+            item_type = row[0]
+            item_qty  = row[1]
+            item_day  = row[2]
+            item_mon  = row[3]
+            item_yr   = row[4]
 
             try:
                 exp_date = datetime.date(item_yr, item_mon, item_day)
@@ -59,9 +59,9 @@ def lambda_handler(event, context):
                 print(f"**Skipping invalid date {item_yr}-{item_mon}-{item_day} for '{item_type}'**")
                 continue
 
-            if exp_date == three_days:
+            if exp_date <= three_days:
                 expiring_items.append({
-                    'type': item_type,
+                    'name': item_type,
                     'quantity': item_qty,
                     'expires': exp_date
                 })
@@ -76,7 +76,7 @@ def lambda_handler(event, context):
             ]
             for item in expiring_items:
                 expires_str = item['expires'].strftime("%m/%d/%Y")
-                body_lines.append(f"- {item['type']} (qty: {item['quantity']}), expires on {expires_str}")
+                body_lines.append(f"- {item['name']} (qty: {item['quantity']}), expires on {expires_str}")
 
             body_text = "\n".join(body_lines)
 
