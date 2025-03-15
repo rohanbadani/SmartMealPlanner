@@ -39,8 +39,12 @@ def lambda_handler(event, context):
 
 
         for item in inventory_rows:
-            # Assume each item is a dict with keys: 'name', 'expiration_date', and 'quantity'
-            prompt += f"{item.get('name')}: {item.get('quantity')} units, expires on {item.get('expiration_date')}\n"
+            name = item[0]
+            quantity = item[1]
+            day = item[2]
+            month = item[3]
+            year = item[4]
+            prompt += f"{name}: {quantity} units, expires on {year}-{month}-{day}\n"
 
         print("Constructed prompt:")
         print(prompt)
@@ -50,15 +54,15 @@ def lambda_handler(event, context):
         openai_api_key = configur.get('openai', 'key')
         
         # Set up the request to the OpenAI API using the text-davinci-003 model.
-        openai_url = "https://api.openai.com/v1/completions"
+        openai_url = "https://api.openai.com/v1/chat/completions"
 
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {openai_api_key}"
         }
         data = {
-            "model": "text-davinci-003",
-            "prompt": prompt,
+            "model": "gpt-4",
+            "messages": [{"role": "user", "content": prompt}],
             "max_tokens": 300,
             "temperature": 0.7,
             "n": 1
@@ -68,8 +72,9 @@ def lambda_handler(event, context):
         if response.status_code != 200:
             raise Exception(f"OpenAI API error: {response.status_code}, {response.text}")
         
-        res = results.json()
-        meal_plan_text = res["choices"][0]["text"].strip() if "choices" in res and res["choices"] else "No meal plan generated"
+        res = response.json()
+        meal_plan_text = res["choices"][0]["message"]["content"].strip() if "choices" in res and res["choices"] else "No meal plan generated"
+
 
         print(meal_plan_text)
 
