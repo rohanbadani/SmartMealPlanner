@@ -43,7 +43,7 @@ def lambda_handler(event, context):
         select_sql = "SELECT quantity FROM inventory WHERE name = %s"
         select_params = (item_name,)
 
-        result = datatier.perform_query(dbConn, select_sql, select_params)
+        result = datatier.retrieve_all_rows(dbConn, select_sql, select_params)
 
         if not result:
             return {
@@ -51,7 +51,7 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': f'Item "{item_name}" not found'})
             }
         
-        current_quantity = result[0]['quantity']
+        current_quantity = result[0][0]
         print(f"**Current quantity of {item_name}: {current_quantity}**")
 
         new_quantity = current_quantity - remove_quantity
