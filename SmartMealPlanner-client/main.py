@@ -129,7 +129,6 @@ def prompt():
       print("   2 => see inventory")
       print("   3 => delete from inventory")
       print("   4 => get a meal plan")
-      print("   5 => add email for notifications")
 
       cmd = input()
 
@@ -365,11 +364,11 @@ def upload(baseurl):
   nothing
   """
   try:
-    print("Enter JPG filename>")
+    print("Enter Image filename>")
     local_filename = input()
 
     if not pathlib.Path(local_filename).is_file():
-      print("JPG file '", local_filename, "' does not exist...")
+      print("Image file '", local_filename, "' does not exist...")
       return
  
     #
@@ -536,8 +535,6 @@ try:
       delete(baseurl)
     elif cmd == 4:
       mealplan(baseurl)
-    elif cmd == 5:
-      notify(baseurl)
     else:
       print("** Unknown command, try again...")
     #
