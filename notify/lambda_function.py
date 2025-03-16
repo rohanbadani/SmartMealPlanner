@@ -2,6 +2,8 @@ import json
 import os
 import datetime
 import boto3
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 from configparser import ConfigParser
 import datatier
@@ -23,6 +25,8 @@ def lambda_handler(event, context):
         rds_pwd      = configur.get('rds', 'user_pwd')
         rds_dbname   = configur.get('rds', 'db_name')
 
+        sendgrid_apikey = configur.get('sendgrid', 'api_key')
+
         print("**Opening DB connection**")
         dbConn = datatier.get_dbConn(rds_endpoint,
                                      rds_portnum,
@@ -30,7 +34,10 @@ def lambda_handler(event, context):
                                      rds_pwd,
                                      rds_dbname)
 
-        ses_client = boto3.client('ses')  
+        #ses_client = boto3.client('ses')  
+
+        input_data = json.loads(event['body'])
+        recipient_email = input_data.get("email")
 
         today = datetime.date.today()
         three_days = today + datetime.timedelta(days=3)
@@ -67,7 +74,7 @@ def lambda_handler(event, context):
                 })
 
         if expiring_items:
-            recipient_email = configur.get('notifications', 'recipient_email', fallback=None)
+            
         
             subject = "Expiration Alert: Items Expiring in 3 Days"
             body_lines = [
@@ -80,21 +87,23 @@ def lambda_handler(event, context):
 
             body_text = "\n".join(body_lines)
 
-            response = ses_client.send_email(
-                Source=recipient_email,  
-                Destination={
-                    'ToAddresses': [recipient_email]  
-                },
-                Message={
-                    'Subject': {'Data': subject},
-                    'Body': {
-                        'Text': {'Data': body_text}
-                    }
-                }
+            message = Mail(
+                from_email="jackcarroll2027@u.northwestern.edu",  # This sender email must be verified in SendGrid
+                to_emails=recipient_email,
+                subject=subject,
+                plain_text_content=body_text
             )
-            print("**Email sent**:", response.get('MessageId'))
+
+            # Send the email via SendGrid
+            sg = SendGridAPIClient(sendgrid_apikey)
+            response = sg.send(message)
+            print("**Email sent via SendGrid**:", response.status_code)
+
         else:
             print("**No items expiring in 3 days, no email sent**")
+
+
+
 
         return {
             'statusCode': 200,
