@@ -173,8 +173,13 @@ def notify(baseurl):
         api = '/notify'
         url = baseurl + api
 
+        print("Enter an email>")
+        email = input()
+
         # res = requests.get(url)
-        res = web_service_get(url)
+        payload = {"email": email}
+        headers = {"Content-Type": "application/json"}
+        res = requests.post(url, json=payload, headers=headers)
 
         #
         # let's look at what we got back:
