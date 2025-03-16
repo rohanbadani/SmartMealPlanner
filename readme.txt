@@ -6,7 +6,7 @@ To install our app, you simply need to download SmartMealPlanner-client. In the 
 
 Different commands:
 0 - to exit the program
-1 - this function will prompt the user to upload an image of a qr code containing text in the format of ITEMNAME-DD-MM-YY-QUANITIY. This program will add that item to the user's inventory, or update an existing item if the user already has som quantity of the item
+1 - this function will prompt the user to upload an image of a qr code containing text in the format of ITEMNAME-DD-MM-YY-QUANTITY. This program will add that item to the user's inventory, or update an existing item if the user already has som quantity of the item
 2 - this function will show the user's inventory
 3 - this function will allow the user to delete a certain quantity of a certain item in their inventory if they have consumed it
 4 - this function will give the user an AI-generated meal plan for future meals based on the current inventory, prioritzing items that are going bad soon
