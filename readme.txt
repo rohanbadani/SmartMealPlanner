@@ -1,5 +1,7 @@
 # SmartMealPlanner
 
+The Smart Meal Planner helps users manage their inventory of food items in their house. The app keeps track of every item in your kitchen and can help generate meal suggestions based on what items you have. Below, you will see how to download the app as well as the different functions and capabilities.
+
 To install our app, you simply need to download SmartMealPlanner-client. In the Smart MealPlanner-client/docker folder, there is a separate readme with instructions on how to configure docker. Once, docker is running, type "python3 main.py" to run the application as intended.
 
 Different commands:
